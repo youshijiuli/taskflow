@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  base: '/taskflow/',
   server: {
     allowedHosts: ['.loca.lt'],
   },
@@ -21,7 +22,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/taskflow/',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
