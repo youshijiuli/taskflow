@@ -1,122 +1,119 @@
-# TaskFlow 部署 SOP —— 从代码到手机
-
-## 前提：只需要做一次
-
-以下两件事你**已经做过了**，换新项目才需要重复：
-
-| 步骤 | 操作 | 位置 |
-|------|------|------|
-| ① 创建部署脚本 | 项目里放 `.github/workflows/deploy.yml` | 已配好，不用动 |
-| ② 开启 GitHub Pages | Settings → Pages → Source 选 `gh-pages` 分支 → Save | 已配好，不用动 |
+# 从零到手机安装 —— 完整操作手册
 
 ---
 
-## 日常流程：每次改代码后
+## 整体流程图
 
 ```
-改代码 → git push → 等 2 分钟 → 手机刷新
+空文件夹 → 创建项目 → Vibe Coding 写代码 → 配 3 个文件 → 推送 GitHub → 开启 Pages → 手机安装
 ```
 
-具体命令：
+下面每一步都给出具体命令和文件内容，直接复制粘贴即可。
+
+---
+
+## 第 1 步：创建项目（电脑上，2 分钟）
 
 ```bash
-git add -A
-git commit -m "改了什么"
-git push origin master
-```
+# 在空文件夹里创建 Vite 项目
+npm create vite@latest . -- --template react-ts
 
-推送后 GitHub 自动构建部署，去这里看进度：
-
-```
-https://github.com/youshijiuli/taskflow/actions
-```
-
-黄色=构建中，绿色=部署完成。
-
----
-
-## 手机安装（只需第一次）
-
-### Android（OPPO / 小米 / 华为等）
-
-1. 装 **Chrome**（自带浏览器不行）
-2. Chrome 打开 `https://youshijiuli.github.io/taskflow/`
-3. 弹窗「添加到主屏幕」→ 点**安装**
-4. 没弹窗的话：点右上角 **⋮** → **安装应用**
-
-### iPhone
-
-1. **Safari** 打开 `https://youshijiuli.github.io/taskflow/`
-2. 底部**分享按钮**（方框箭头↑）
-3. **添加到主屏幕** → 点「添加」
-
----
-
-## 新项目从零到手机（完整流程）
-
-### 第一步：电脑上创建项目
-
-```bash
-# 1. 创建 Vite 项目（选 react-ts 模板）
-npm create vite@latest my-app -- --template react-ts
-cd my-app
-
-# 2. 安装必备依赖
+# 安装依赖
 npm install
-npm install dexie zustand react-router-dom recharts vite-plugin-pwa tailwindcss @tailwindcss/vite
 
-# 3. 启动开发服务器，边写边预览
-npm run dev
-# → http://localhost:5173
+# 安装额外依赖
+npm install dexie zustand react-router-dom recharts vite-plugin-pwa tailwindcss @tailwindcss/vite
 ```
 
-### 第二步：写代码
+验证：
+```bash
+npm run dev
+# 浏览器打开 http://localhost:5173 能看到页面就对了
+```
 
-> 这部分根据你的需求开发。核心文件：
-> - `src/App.tsx` — 路由
-> - `src/pages/` — 页面
-> - `src/components/` — 组件
+---
 
-### 第三步：配好这 3 个文件（决定能否装到手机）
+## 第 2 步：Vibe Coding 写代码
 
-**① `vite.config.ts`** — 加 PWA 插件 + base 路径：
+> 这一块你跟 AI 对话完成，写页面、组件、逻辑。不是本文重点，跳过。
+
+---
+
+## 第 3 步：配置 3 个关键文件
+
+代码写完后，这 3 个文件决定了 APP 能不能装到手机上。**每个文件的内容都给你写好了，复制粘贴后改一下名字即可。**
+
+---
+
+### 文件 ①：`vite.config.ts`
 
 ```ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  base: '/你的仓库名/',       // ⚠️ 改成你自己的
+  base: '/你的仓库名/',    // ⚠️ 改这里！例如 '/my-app/'
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '你的应用名',
-        short_name: '应用名',
+        name: '你的应用全名',
+        short_name: '应用简称',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/你的仓库名/',   // ⚠️ 改这里
-        icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+        start_url: '/你的仓库名/',   // ⚠️ 改这里，跟 base 一样
+        icons: [
+          {
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
+          },
+        ],
       },
     }),
   ],
 });
 ```
 
-**② `src/main.tsx`** — 用 HashRouter（不用 BrowserRouter）：
+**需要改的地方（2 处）：**
+- `base: '/你的仓库名/'` → 改成你 GitHub 仓库的名字
+- `start_url: '/你的仓库名/'` → 同上
+
+---
+
+### 文件 ②：`src/main.tsx`
+
+> GitHub Pages 不支持正常的前端路由，必须用 HashRouter。
 
 ```tsx
-import { HashRouter } from 'react-router-dom';
-// ...
-<HashRouter>
-  <App />
-</HashRouter>
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { HashRouter } from 'react-router-dom';   // ← 注意是 HashRouter
+import App from './App';
+import './index.css';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <HashRouter>           // ← 这里
+      <App />
+    </HashRouter>          // ← 这里
+  </StrictMode>
+);
 ```
 
-**③ `.github/workflows/deploy.yml`** — 自动部署脚本：
+**关键：** 三处都是 `HashRouter`，不是 `BrowserRouter`。
+
+---
+
+### 文件 ③：`.github/workflows/deploy.yml`
+
+> 这个文件让 GitHub 在每次你推送代码时，自动帮你构建并部署。
 
 ```yaml
 name: Deploy to GitHub Pages
@@ -144,46 +141,92 @@ jobs:
           publish_dir: ./dist
 ```
 
-### 第四步：推送到 GitHub
+**不需要改任何东西**，直接复制粘贴。
+
+---
+
+## 第 4 步：本地验证
 
 ```bash
-# 1. 在 GitHub 网页上新建一个空仓库（不要勾选 README）
-#    → 得到地址 https://github.com/你的用户名/仓库名
-
-# 2. 推送代码
-git init
-git add -A
-git commit -m "first commit"
-git remote add origin https://github.com/你的用户名/仓库名.git
-git push -u origin master
+npm run build
 ```
 
-### 第五步：开启 GitHub Pages
+没报错就说明配置正确，可以推送了。
 
-1. 打开 `https://github.com/你的用户名/仓库名/settings/pages`
-2. Source → **Deploy from a branch**
-3. Branch → 选 **`gh-pages`**，目录 `/ (root)` → **Save**
-4. 打开 `https://github.com/你的用户名/仓库名/actions` 看构建进度
-5. 绿色 ✓ 后，访问 `https://你的用户名.github.io/仓库名/`
+---
 
-### 第六步：手机安装
+## 第 5 步：创建 GitHub 仓库并推送
 
-- **Android**：装 Chrome → 打开网址 → 弹窗安装
-- **iPhone**：Safari → 分享按钮 → 添加到主屏幕
+```
+1. 浏览器打开 https://github.com/new
+2. Repository name 填你的仓库名（例如 my-app）
+3. ⚠️ 不要勾选 "Add a README file"
+4. 点 "Create repository"
+5. 看到 "Quick setup" 页面时，复制那三条命令：
 
-### 以后每次改代码
+   git init
+   git add -A
+   git commit -m "first commit"
+   git remote add origin https://github.com/你的用户名/仓库名.git
+   git push -u origin master
+```
 
-```bash
-git add -A
-git commit -m "描述修改"
-git push origin master
-# → 等 2 分钟 → 手机刷新
+注意：上面的 git 命令在**项目文件夹里**执行。
+
+---
+
+## 第 6 步：开启 GitHub Pages
+
+```
+1. 打开 https://github.com/你的用户名/仓库名/actions
+   → 等黄色圆点变成绿色 ✓（约 2 分钟）
+
+2. 打开 https://github.com/你的用户名/仓库名/settings/pages
+   → Source 选 "Deploy from a branch"
+   → Branch 选 "gh-pages"、目录选 "/ (root)"
+   → 点 Save
 ```
 
 ---
 
-## 数据说明
+## 第 7 步：手机安装
 
-- 数据存在手机浏览器的 IndexedDB（纯本地，不上传）
-- 卸载 PWA 会清数据
-- 不支持多设备同步
+访问地址：`https://你的用户名.github.io/仓库名/`
+
+### Android（OPPO / 小米 / 华为等）
+
+1. 装 **Chrome 浏览器**
+2. Chrome 打开上面的网址
+3. 弹窗「添加到主屏幕」→ 点**安装**
+4. 没弹窗：点右上角 **⋮** → **安装应用**
+
+### iPhone
+
+1. **Safari** 打开上面的网址
+2. 底部**分享按钮**（方框箭头↑）
+3. **添加到主屏幕** → 点「添加」
+
+---
+
+## 以后每次改代码
+
+```bash
+git add -A
+git commit -m "改了什么"
+git push origin master
+
+# 等 2 分钟，手机刷新即可
+```
+
+---
+
+## 速查表
+
+| 环节 | 做什么 | 几分钟 |
+|------|--------|--------|
+| 创建项目 | `npm create vite` + `npm install` | 2 |
+| 写代码 | Vibe Coding 跟 AI 对话 | 看需求 |
+| 配 3 个文件 | vite.config.ts / main.tsx / deploy.yml | 1 |
+| 推送 | GitHub 建仓库 → `git push` | 2 |
+| 开启 Pages | Settings → 选 gh-pages 分支 | 1 |
+| 手机装 | Chrome 打开网址 → 安装 | 1 |
