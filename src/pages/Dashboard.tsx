@@ -1,8 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
+import { useGoalsStore } from '../store/goalsStore';
 import StatCard from '../components/StatCard';
 import Heatmap from '../components/Heatmap';
+import EfficiencyPanel from '../components/EfficiencyPanel';
+import TimeRangeSelector from '../components/TimeRangeSelector';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import GoalCard from '../components/GoalCard';
 
 const GRADIENTS = [
   'from-pink-500 to-rose-500',
@@ -13,6 +18,11 @@ const GRADIENTS = [
 
 export default function Dashboard() {
   const tasks = useTaskStore((s) => s.tasks);
+  const objectives = useGoalsStore((s) => s.objectives);
+  const krs = useGoalsStore((s) => s.krs);
+  const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const rangeDays = { '7d': 7, '30d': 30, '90d': 90, all: Infinity }[timeRange];
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -83,6 +93,36 @@ export default function Dashboard() {
         <StatCard label="已完成" value={stats.done} gradient={GRADIENTS[1]} subtitle={`完成率 ${stats.rate}%`} />
         <StatCard label="进行中" value={stats.inProgress} gradient={GRADIENTS[2]} />
         <StatCard label="今日完成" value={stats.todayCount} gradient={GRADIENTS[3]} />
+      </div>
+
+      {/* Goal progress */}
+      {objectives.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-gray-600">目标进度</h3>
+            <button onClick={() => navigate('/goals')} className="text-xs font-bold text-purple-500">查看全部 →</button>
+          </div>
+          <div className="space-y-2">
+            {objectives.slice(0, 3).map((o) => (
+              <GoalCard
+                key={o.id}
+                objective={o}
+                krs={krs.filter((kr) => kr.objectiveId === o.id)}
+                taskCount={tasks.filter((t) => t.keyResultId && krs.filter((kr) => kr.objectiveId === o.id).some((kr) => kr.id === t.keyResultId)).length}
+                onClick={() => navigate(`/goals/${o.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Efficiency panel */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-700">效率分析</h3>
+          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+        </div>
+        <EfficiencyPanel tasks={tasks} days={rangeDays} />
       </div>
 
       {/* Heatmap */}
