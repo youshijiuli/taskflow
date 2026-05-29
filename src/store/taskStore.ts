@@ -1,13 +1,14 @@
 import { create } from 'zustand';
-import { db } from '../db/database';
+import { supabase } from '../supabase/client';
+import { taskToSnake, taskFromSnake } from '../supabase/mappers';
 import type { Task } from '../types';
-import { today } from '../utils/date';
 
 interface TaskStore {
   tasks: Task[];
   loading: boolean;
-  load: () => Promise<void>;
-  add: (t: Omit<Task, 'id' | 'createdAt' | 'kanbanOrder'>) => Promise<Task>;
+  error: string | null;
+  load: (userId: string) => Promise<void>;
+  add: (data: Omit<Task, 'id' | 'createdAt' | 'kanbanOrder'>) => Promise<Task | null>;
   update: (id: string, partial: Partial<Task>) => Promise<void>;
   remove: (id: string) => Promise<void>;
   completeTask: (id: string) => Promise<void>;
@@ -16,76 +17,84 @@ interface TaskStore {
   getByProject: (projectId: string) => Task[];
 }
 
+function getUserId(): string | null {
+  return (window as unknown as { __supabaseUserId?: string }).__supabaseUserId || null;
+}
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   loading: true,
+  error: null,
 
-  load: async () => {
-    const tasks = await db.tasks.orderBy('createdAt').reverse().toArray();
-    set({ tasks, loading: false });
+  load: async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) { set({ error: error.message, loading: false }); return; }
+      set({ tasks: (data || []).map(taskFromSnake), loading: false, error: null });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : '加载任务失败', loading: false });
+    }
   },
 
   add: async (data) => {
+    const userId = getUserId() || '';
     const maxOrder = get().tasks.reduce((m, t) => Math.max(m, t.kanbanOrder), 0);
     const task: Task = {
       ...data,
       id: crypto.randomUUID(),
-      createdAt: Date.now(),
+      userId,
       kanbanOrder: maxOrder + 1,
+      createdAt: Date.now(),
     };
-    await db.tasks.put(task);
+
+    // Optimistic: update UI immediately
     set({ tasks: [task, ...get().tasks] });
+
+    // Persist to Supabase
+    const { error } = await supabase.from('tasks').insert(taskToSnake(task));
+    if (error) {
+      // Rollback on failure
+      set({ tasks: get().tasks.filter((t) => t.id !== task.id), error: error.message });
+      return null;
+    }
     return task;
   },
 
   update: async (id, partial) => {
-    await db.tasks.update(id, partial);
-    set({
-      tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...partial } : t)),
-    });
+    // Optimistic
+    const prev = get().tasks;
+    set({ tasks: prev.map((t) => (t.id === id ? { ...t, ...partial } : t)) });
+
+    const { error } = await supabase.from('tasks').update(taskToSnake(partial)).eq('id', id);
+    if (error) {
+      set({ tasks: prev, error: error.message }); // rollback
+    }
   },
 
   remove: async (id) => {
-    await db.tasks.delete(id);
-    set({ tasks: get().tasks.filter((t) => t.id !== id) });
+    const prev = get().tasks;
+    set({ tasks: prev.filter((t) => t.id !== id) });
+
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    if (error) {
+      set({ tasks: prev, error: error.message });
+    }
   },
 
   completeTask: async (id) => {
     const now = Date.now();
-    await db.tasks.update(id, { status: 'done', completedAt: now, progress: 100 });
-
-    const date = today();
-    const existing = await db.dailyCompletions.get(date);
-    await db.dailyCompletions.put({
-      date,
-      count: (existing?.count ?? 0) + 1,
-    });
-
-    set({
-      tasks: get().tasks.map((t) =>
-        t.id === id ? { ...t, status: 'done' as const, completedAt: now, progress: 100 } : t
-      ),
-    });
+    await get().update(id, { status: 'done', completedAt: now, progress: 100 });
   },
 
   uncompleteTask: async (id) => {
-    await db.tasks.update(id, { status: 'todo', completedAt: null, progress: 0 });
-    set({
-      tasks: get().tasks.map((t) =>
-        t.id === id
-          ? { ...t, status: 'todo' as const, completedAt: null, progress: 0 }
-          : t
-      ),
-    });
-
-    const date = today();
-    const existing = await db.dailyCompletions.get(date);
-    if (existing && existing.count > 0) {
-      await db.dailyCompletions.put({ date, count: existing.count - 1 });
-    }
+    await get().update(id, { status: 'todo', completedAt: null, progress: 0 });
   },
 
   getByStatus: (status) => get().tasks.filter((t) => t.status === status),
   getByProject: (projectId) => get().tasks.filter((t) => t.projectId === projectId),
 }));
-

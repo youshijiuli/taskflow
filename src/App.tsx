@@ -21,19 +21,28 @@ export default function App() {
   const loadGoals = useGoalsStore((s) => s.load);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadAll = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (userId) {
-        loadTasks();
-        loadProjects();
-        loadGoals(userId);
-      } else {
-        loadTasks();
-        loadProjects();
+        // Store userId for store write operations
+        (window as unknown as Record<string, unknown>).__supabaseUserId = userId;
+        await Promise.all([loadTasks(userId), loadProjects(userId), loadGoals(userId)]);
       }
     };
-    loadData();
+    loadAll();
+
+    // Reload data on auth state change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user?.id;
+      if (userId) {
+        (window as unknown as Record<string, unknown>).__supabaseUserId = userId;
+        loadTasks(userId);
+        loadProjects(userId);
+        loadGoals(userId);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [loadTasks, loadProjects, loadGoals]);
 
   return (
