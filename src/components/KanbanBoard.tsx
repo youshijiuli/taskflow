@@ -4,9 +4,9 @@ import type { Task, TaskStatus } from '../types';
 import PriorityBadge from './PriorityBadge';
 
 const columns: { status: TaskStatus; label: string; bg: string; border: string; dot: string }[] = [
-  { status: 'todo', label: '待办', bg: 'bg-gray-50/70', border: 'border-gray-100', dot: 'bg-gray-300' },
-  { status: 'in_progress', label: '进行中', bg: 'bg-blue-50/50', border: 'border-blue-100', dot: 'bg-blue-400' },
-  { status: 'done', label: '已完成', bg: 'bg-emerald-50/50', border: 'border-emerald-100', dot: 'bg-emerald-400' },
+  { status: 'todo', label: '待办', bg: 'bg-gray-50', border: 'border-gray-200/60', dot: 'bg-gray-300' },
+  { status: 'in_progress', label: '进行中', bg: 'bg-blue-50', border: 'border-blue-200/60', dot: 'bg-blue-400' },
+  { status: 'done', label: '已完成', bg: 'bg-emerald-50', border: 'border-emerald-200/60', dot: 'bg-emerald-400' },
 ];
 
 export default function KanbanBoard({ tasks }: { tasks: Task[] }) {

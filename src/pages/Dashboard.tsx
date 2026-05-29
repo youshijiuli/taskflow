@@ -117,7 +117,7 @@ export default function Dashboard() {
       )}
 
       {/* Efficiency panel */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+      <div className="section-card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-700">效率分析</h3>
           <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
@@ -126,13 +126,13 @@ export default function Dashboard() {
       </div>
 
       {/* Heatmap */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+      <div className="section-card">
         <h3 className="text-sm font-bold text-gray-700 mb-3">完成热力图</h3>
         <Heatmap tasks={tasks} />
       </div>
 
       {/* Weekly */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+      <div className="section-card">
         <h3 className="text-sm font-bold text-gray-700 mb-3">本周完成</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={stats.weekData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -150,7 +150,7 @@ export default function Dashboard() {
 
       {/* Monthly + Priority */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+        <div className="section-card">
           <h3 className="text-sm font-bold text-gray-700 mb-3">月度趋势</h3>
           <ResponsiveContainer width="100%" height={140}>
             <BarChart data={stats.monthData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -160,7 +160,7 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 border border-white/80 shadow-sm">
+        <div className="section-card">
           <h3 className="text-sm font-bold text-gray-700 mb-1">优先级</h3>
           {stats.priorityData.length > 0 ? (
             <ResponsiveContainer width="100%" height={140}>

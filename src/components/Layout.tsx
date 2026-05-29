@@ -64,7 +64,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 pb-20">{children}</main>
 
       <nav className="fixed bottom-3 left-3 right-3 z-20">
-        <div className="max-w-[456px] mx-auto flex justify-around py-2 px-1 bg-white/80 backdrop-blur-2xl rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.08)] border border-white/80"
+        <div className="max-w-[456px] mx-auto flex justify-around py-2 px-1 bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] border border-gray-100"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 4px)' }}>
           {tabs.map(({ path, label }) => (
             <button

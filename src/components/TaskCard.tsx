@@ -1,67 +1,82 @@
 import { useNavigate } from 'react-router-dom';
+import { useProjectStore } from '../store/projectStore';
 import type { Task } from '../types';
 import PriorityBadge from './PriorityBadge';
 import { daysUntil, isOverdue, formatDate } from '../utils/date';
 
-const statusConfig = {
-  todo: { dot: 'bg-gray-300' },
-  in_progress: { dot: 'bg-gradient-to-b from-blue-400 to-blue-500' },
-  done: { dot: 'bg-gradient-to-b from-emerald-400 to-emerald-500' },
+const statusBadge: Record<string, { label: string; cls: string }> = {
+  todo: { label: '待办', cls: 'bg-gray-100 text-gray-500' },
+  in_progress: { label: '进行中', cls: 'bg-blue-50 text-blue-600' },
+  done: { label: '已完成', cls: 'bg-emerald-50 text-emerald-600' },
 };
 
 export default function TaskCard({ task }: { task: Task }) {
   const navigate = useNavigate();
+  const projects = useProjectStore((s) => s.projects);
   const overdue = task.dueDate && isOverdue(task.dueDate) && task.status !== 'done';
   const dueSoon = task.dueDate && !overdue && daysUntil(task.dueDate) <= 3 && task.status !== 'done';
-  const st = statusConfig[task.status];
+  const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
 
   return (
     <div
       onClick={() => navigate(`/task/${task.id}`)}
-      className="card-press bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3.5 border border-white/80 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-shadow cursor-pointer"
+      className={`section-card hover-lift card-press cursor-pointer ${overdue ? 'border-l-3 border-l-rose-400' : ''} ${dueSoon ? 'border-l-3 border-l-amber-400' : ''}`}
     >
-      <div className="flex items-start gap-3">
-        <span className={`mt-1.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ${st.dot}`} />
-
+      {/* Top row: title + status */}
+      <div className="flex items-start gap-2.5">
+        <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+          task.status === 'done' ? 'bg-emerald-400' : task.status === 'in_progress' ? 'bg-blue-400' : 'bg-gray-300'
+        }`} />
         <div className="flex-1 min-w-0">
-          <p className={`text-[15px] leading-snug font-semibold truncate ${
+          <p className={`text-[15px] font-semibold leading-snug truncate ${
             task.status === 'done' ? 'line-through text-gray-300' : 'text-gray-800'
           }`}>
             {task.title}
           </p>
-
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <PriorityBadge priority={task.priority} />
-
-            {task.dueDate && (
-              <span className={`text-[11px] font-semibold ${
-                overdue ? 'text-rose-500' : dueSoon ? 'text-amber-500' : 'text-gray-400'
-              }`}>
-                {overdue ? '已逾期' : formatDate(task.dueDate)}
-              </span>
-            )}
-
-            {task.progress > 0 && task.progress < 100 && (
-              <span className="text-[11px] text-gray-400 font-semibold">{task.progress}%</span>
-            )}
-
-            {task.spentHours != null && task.spentHours > 0 && (
-              <span className="text-[11px] text-gray-400">{task.spentHours}h</span>
-            )}
-          </div>
-
-          {task.progress > 0 && task.progress < 100 && (
-            <div className="mt-2 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500"
-                style={{ width: `${task.progress}%` }} />
-            </div>
+          {task.description && (
+            <p className="text-[12px] text-gray-400 mt-0.5 line-clamp-1">{task.description}</p>
           )}
         </div>
-
-        <svg className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M9 6l6 6-6 6" />
-        </svg>
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg flex-shrink-0 ${statusBadge[task.status].cls}`}>
+          {statusBadge[task.status].label}
+        </span>
       </div>
+
+      {/* Bottom row: info tags */}
+      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+        <PriorityBadge priority={task.priority} />
+
+        {project && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: project.color }} />
+            {project.name}
+          </span>
+        )}
+
+        {task.dueDate && (
+          <span className={`text-[11px] font-semibold ${overdue ? 'text-rose-500' : dueSoon ? 'text-amber-500' : 'text-gray-400'}`}>
+            {overdue ? '已逾期' : dueSoon ? '即将到期' : ''} {formatDate(task.dueDate)}
+          </span>
+        )}
+
+        {task.quadrant && (
+          <span className="text-[10px] text-gray-300 px-1.5 py-0.5 bg-gray-50 rounded">
+            {task.quadrant === 'q1' ? '紧急重要' : task.quadrant === 'q2' ? '重要不紧急' : task.quadrant === 'q3' ? '紧急不重要' : '不重要不紧急'}
+          </span>
+        )}
+
+        {task.spentHours != null && task.spentHours > 0 && (
+          <span className="text-[11px] text-gray-400">{task.spentHours}h</span>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {task.progress > 0 && task.progress < 100 && (
+        <div className="mt-2.5 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500"
+            style={{ width: `${task.progress}%` }} />
+        </div>
+      )}
     </div>
   );
 }

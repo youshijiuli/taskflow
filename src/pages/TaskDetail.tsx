@@ -51,7 +51,7 @@ export default function TaskDetail() {
         </div>
       )}
 
-      <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+      <div className="section-card divide-y divide-gray-50 overflow-hidden">
         {task.dueDate && <Row label="截止日期" value={formatFullDate(task.dueDate)} />}
         {task.estimatedHours != null && <Row label="预计时长" value={`${task.estimatedHours}h`} />}
         {task.spentHours != null && task.spentHours > 0 && <Row label="已花费" value={`${task.spentHours}h`} />}
