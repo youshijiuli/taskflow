@@ -29,7 +29,6 @@ export default function TaskForm() {
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [projectId, setProjectId] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [reminderDate, setReminderDate] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
   const [spentHours, setSpentHours] = useState('');
   const [progress, setProgress] = useState(0);
@@ -40,7 +39,6 @@ export default function TaskForm() {
       setPriority(existing.priority); setStatus(existing.status);
       setProjectId(existing.projectId);
       setDueDate(existing.dueDate ? new Date(existing.dueDate).toISOString().slice(0, 16) : '');
-      setReminderDate(existing.reminderTime ? new Date(existing.reminderTime).toISOString().slice(0, 16) : '');
       setEstimatedHours(existing.estimatedHours?.toString() ?? '');
       setSpentHours(existing.spentHours?.toString() ?? '');
       setProgress(existing.progress);
@@ -52,9 +50,9 @@ export default function TaskForm() {
     if (!title.trim()) return;
     const data = {
       title: title.trim(), description: description.trim(), priority, status,
-      projectId: projectId || 'default', tags: [] as string[],
+      userId: '', projectId: projectId || '', keyResultId: null, quadrant: null,
+      tags: [] as string[],
       dueDate: dueDate ? new Date(dueDate).getTime() : null,
-      reminderTime: reminderDate ? new Date(reminderDate).getTime() : null,
       estimatedHours: estimatedHours ? Number(estimatedHours) : null,
       spentHours: spentHours ? Number(spentHours) : null,
       progress, completedAt: status === 'done' ? Date.now() : null,
@@ -124,11 +122,6 @@ export default function TaskForm() {
           <div>
             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">截止日期</label>
             <input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-purple-300 transition-all" />
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">提醒</label>
-            <input type="datetime-local" value={reminderDate} onChange={(e) => setReminderDate(e.target.value)}
               className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-purple-300 transition-all" />
           </div>
         </div>

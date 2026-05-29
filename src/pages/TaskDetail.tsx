@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useProjectStore } from '../store/projectStore';
 import PriorityBadge from '../components/PriorityBadge';
-import { formatFullDate, formatDateTime } from '../utils/date';
+import { formatFullDate } from '../utils/date';
 
 const statusLabels = { todo: '待办', in_progress: '进行中', done: '已完成' };
 const statusColors = { todo: 'bg-gray-100 text-gray-600', in_progress: 'bg-blue-50 text-blue-600', done: 'bg-emerald-50 text-emerald-600' };
@@ -53,7 +53,6 @@ export default function TaskDetail() {
 
       <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
         {task.dueDate && <Row label="截止日期" value={formatFullDate(task.dueDate)} />}
-        {task.reminderTime && <Row label="提醒时间" value={formatDateTime(task.reminderTime)} />}
         {task.estimatedHours != null && <Row label="预计时长" value={`${task.estimatedHours}h`} />}
         {task.spentHours != null && task.spentHours > 0 && <Row label="已花费" value={`${task.spentHours}h`} />}
         {task.progress > 0 && (

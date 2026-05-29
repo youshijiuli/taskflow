@@ -35,10 +35,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     };
     await db.tasks.put(task);
     set({ tasks: [task, ...get().tasks] });
-
-    if (data.reminderTime) {
-      scheduleReminder(task);
-    }
     return task;
   },
 
@@ -93,18 +89,3 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   getByProject: (projectId) => get().tasks.filter((t) => t.projectId === projectId),
 }));
 
-function scheduleReminder(task: Task) {
-  if (!task.reminderTime) return;
-  const delay = task.reminderTime - Date.now();
-  if (delay <= 0) return;
-
-  setTimeout(() => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('任务提醒', {
-        body: task.title,
-        icon: '/icon-192.png',
-        tag: task.id,
-      });
-    }
-  }, delay);
-}

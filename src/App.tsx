@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useTaskStore } from './store/taskStore';
 import { useProjectStore } from './store/projectStore';
+import AuthGuard from './components/AuthGuard';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
@@ -19,15 +20,17 @@ export default function App() {
   }, [loadTasks, loadProjects]);
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/task/new" element={<TaskForm />} />
-        <Route path="/task/:id" element={<TaskDetail />} />
-        <Route path="/task/:id/edit" element={<TaskForm />} />
-        <Route path="/projects" element={<Projects />} />
-      </Routes>
-    </Layout>
+    <AuthGuard>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/task/new" element={<TaskForm />} />
+          <Route path="/task/:id" element={<TaskDetail />} />
+          <Route path="/task/:id/edit" element={<TaskForm />} />
+          <Route path="/projects" element={<Projects />} />
+        </Routes>
+      </Layout>
+    </AuthGuard>
   );
 }

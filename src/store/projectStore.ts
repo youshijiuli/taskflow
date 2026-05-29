@@ -21,7 +21,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   add: async (name, color, icon) => {
-    const project: Project = { id: crypto.randomUUID(), name, color, icon };
+    const project: Project = { id: crypto.randomUUID(), userId: '', name, color, icon, domain: null };
     await db.projects.put(project);
     set({ projects: [...get().projects, project] });
     return project;
