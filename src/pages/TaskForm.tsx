@@ -33,6 +33,7 @@ export default function TaskForm() {
   const [spentHours, setSpentHours] = useState('');
   const [quadrant, setQuadrant] = useState<Task['quadrant']>(null);
   const [progress, setProgress] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (existing) {
@@ -50,6 +51,7 @@ export default function TaskForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    setSaving(true);
     const data = {
       title: title.trim(), description: description.trim(), priority, status,
       userId: '', projectId: projectId || '', keyResultId: null, quadrant,
@@ -60,7 +62,10 @@ export default function TaskForm() {
       progress, completedAt: status === 'done' ? Date.now() : null,
     };
     if (editing && existing) await updateTask(existing.id, data);
-    else await addTask(data);
+    else {
+      const result = await addTask(data);
+      if (!result) { setSaving(false); return; } // Stay on form if save fails
+    }
     navigate(-1);
   };
 
@@ -163,9 +168,9 @@ export default function TaskForm() {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit"
-            className="flex-1 py-3.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-2xl font-bold text-[15px] shadow-lg shadow-purple-200 card-press">
-            {editing ? '保存修改' : '创建任务'}
+          <button type="submit" disabled={saving}
+            className="flex-1 py-3.5 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-2xl font-bold text-[15px] shadow-lg shadow-purple-200 card-press disabled:opacity-60">
+            {saving ? '保存中...' : editing ? '保存修改' : '创建任务'}
           </button>
           {editing && (
             <button type="button" onClick={handleDelete}
