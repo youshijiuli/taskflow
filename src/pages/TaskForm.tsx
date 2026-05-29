@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import { useProjectStore } from '../store/projectStore';
-import type { Priority, TaskStatus } from '../types';
+import type { Priority, TaskStatus, Task } from '../types';
 
 const priorityOptions: { value: Priority; label: string; activeCls: string }[] = [
   { value: 'urgent', label: '紧急', activeCls: 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-200' },
@@ -31,6 +31,7 @@ export default function TaskForm() {
   const [dueDate, setDueDate] = useState('');
   const [estimatedHours, setEstimatedHours] = useState('');
   const [spentHours, setSpentHours] = useState('');
+  const [quadrant, setQuadrant] = useState<Task['quadrant']>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function TaskForm() {
       setDueDate(existing.dueDate ? new Date(existing.dueDate).toISOString().slice(0, 16) : '');
       setEstimatedHours(existing.estimatedHours?.toString() ?? '');
       setSpentHours(existing.spentHours?.toString() ?? '');
+      setQuadrant(existing.quadrant);
       setProgress(existing.progress);
     }
   }, [existing]);
@@ -50,7 +52,7 @@ export default function TaskForm() {
     if (!title.trim()) return;
     const data = {
       title: title.trim(), description: description.trim(), priority, status,
-      userId: '', projectId: projectId || '', keyResultId: null, quadrant: null,
+      userId: '', projectId: projectId || '', keyResultId: null, quadrant,
       tags: [] as string[],
       dueDate: dueDate ? new Date(dueDate).getTime() : null,
       estimatedHours: estimatedHours ? Number(estimatedHours) : null,
@@ -115,6 +117,19 @@ export default function TaskForm() {
               <option value="">无项目</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+          </div>
+        </div>
+
+        {/* Quadrant */}
+        <div>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1.5 block">四象限</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([['q1', '🔴 紧急重要'], ['q2', '🔵 重要不紧急'], ['q3', '🟡 紧急不重要'], ['q4', '⚪ 不重要不紧急']] as const).map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setQuadrant(quadrant === value ? null : value as Task['quadrant'])}
+                className={`py-2.5 text-xs font-bold rounded-xl border transition-all ${
+                  quadrant === value ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-white border-gray-200 text-gray-500'
+                }`}>{label}</button>
+            ))}
           </div>
         </div>
 
