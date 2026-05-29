@@ -13,8 +13,9 @@ interface ProjectStore {
   remove: (id: string) => Promise<void>;
 }
 
-function getUserId(): string | null {
-  return (window as unknown as { __supabaseUserId?: string }).__supabaseUserId || null;
+async function getUserId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id || '';
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -38,7 +39,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   add: async (name, color, icon) => {
-    const userId = getUserId() || '';
+    const userId = await getUserId();
     const project: Project = { id: crypto.randomUUID(), userId, name, color, icon, domain: null };
 
     // Optimistic

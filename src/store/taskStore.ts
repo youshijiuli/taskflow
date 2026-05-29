@@ -17,8 +17,9 @@ interface TaskStore {
   getByProject: (projectId: string) => Task[];
 }
 
-function getUserId(): string | null {
-  return (window as unknown as { __supabaseUserId?: string }).__supabaseUserId || null;
+async function getUserId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id || '';
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -42,7 +43,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   add: async (data) => {
-    const userId = getUserId() || '';
+    const userId = await getUserId();
     const maxOrder = get().tasks.reduce((m, t) => Math.max(m, t.kanbanOrder), 0);
     const task: Task = {
       ...data,
