@@ -14,6 +14,9 @@ import Projects from './pages/Projects';
 import GoalsPage from './pages/GoalsPage';
 import GoalDetailPage from './pages/GoalDetailPage';
 import GoalFormPage from './pages/GoalFormPage';
+import DesktopDashboard from './pages/DesktopDashboard';
+
+const isElectron = !!(window as unknown as { electronAPI?: { isElectron: boolean } }).electronAPI?.isElectron;
 
 export default function App() {
   const loadTasks = useTaskStore((s) => s.load);
@@ -25,14 +28,12 @@ export default function App() {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (userId) {
-        // Store userId for store write operations
         (window as unknown as Record<string, unknown>).__supabaseUserId = userId;
         await Promise.all([loadTasks(userId), loadProjects(userId), loadGoals(userId)]);
       }
     };
     loadAll();
 
-    // Reload data on auth state change
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const userId = session?.user?.id;
       if (userId) {
@@ -45,6 +46,16 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [loadTasks, loadProjects, loadGoals]);
 
+  // Desktop: read-only dashboard
+  if (isElectron) {
+    return (
+      <AuthGuard>
+        <DesktopDashboard />
+      </AuthGuard>
+    );
+  }
+
+  // Mobile: full CRUD
   return (
     <AuthGuard>
       <Layout>

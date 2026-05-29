@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
@@ -7,6 +8,14 @@ export default defineConfig({
   base: '/taskflow/',
   server: {
     allowedHosts: ['.loca.lt'],
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        desktop: resolve(__dirname, 'desktop.html'),
+      },
+    },
   },
   plugins: [
     react(),
