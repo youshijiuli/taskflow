@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:desktop": "vite --open /desktop.html",
     "build": "tsc -b && vite build",
-    "build:desktop": "tsc -b && vite build && electron-builder",
+    "build:exe": "tsc -b && vite build && electron-builder --win portable",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:dev": "vite"
@@ -19,12 +19,9 @@
     "directories": { "output": "release" },
     "files": ["dist/**/*", "electron/**/*"],
     "win": {
-      "target": "nsis",
-      "icon": "public/icon-512.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "target": "portable",
+      "icon": "public/icon-512.png",
+      "signAndEditExecutable": false
     }
   },
   "dependencies": {
