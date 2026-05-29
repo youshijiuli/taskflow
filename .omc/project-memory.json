@@ -1,0 +1,327 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780047044009,
+  "projectRoot": "c:\\Users\\ZhuanZ\\Desktop\\mind",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.6",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.6",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "8.0.12",
+        "category": "build"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "cd c:/Users/ZhuanZ/Desktop/mind && npm run build 2>&1",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc -b && vite build",
+      "lint": "eslint .",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 10,
+      "lastAccessed": 1780047043920,
+      "keyFiles": [
+        "favicon.svg",
+        "icon-192.png",
+        "icon-512.png",
+        "icons.svg",
+        "index.html"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 5,
+      "lastAccessed": 1780047043923,
+      "keyFiles": [
+        "favicon.svg",
+        "icon-192.png",
+        "icon-512.png",
+        "icons.svg",
+        "manifest.json"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1780047043939,
+      "keyFiles": [
+        "App.tsx",
+        "index.css",
+        "main.tsx"
+      ]
+    },
+    "dist\\assets": {
+      "path": "dist\\assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1780047043941,
+      "keyFiles": [
+        "index-C2i38pzP.css",
+        "index-DRIbte8E.js"
+      ]
+    },
+    "src\\assets": {
+      "path": "src\\assets",
+      "purpose": "Static assets",
+      "fileCount": 0,
+      "lastAccessed": 1780047043941,
+      "keyFiles": []
+    },
+    "src\\components": {
+      "path": "src\\components",
+      "purpose": "UI components",
+      "fileCount": 7,
+      "lastAccessed": 1780047043942,
+      "keyFiles": [
+        "Heatmap.tsx",
+        "InstallPrompt.tsx",
+        "KanbanBoard.tsx"
+      ]
+    },
+    "src\\pages": {
+      "path": "src\\pages",
+      "purpose": "Page components",
+      "fileCount": 5,
+      "lastAccessed": 1780047043943,
+      "keyFiles": [
+        "Dashboard.tsx",
+        "Projects.tsx",
+        "TaskDetail.tsx"
+      ]
+    },
+    "src\\types": {
+      "path": "src\\types",
+      "purpose": "Type definitions",
+      "fileCount": 1,
+      "lastAccessed": 1780047043943,
+      "keyFiles": [
+        "index.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1780048687578,
+      "type": "directory"
+    },
+    {
+      "path": "src",
+      "accessCount": 3,
+      "lastAccessed": 1780048632851,
+      "type": "directory"
+    },
+    {
+      "path": "src\\components\\Layout.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780048981099,
+      "type": "file"
+    },
+    {
+      "path": "src\\index.css",
+      "accessCount": 2,
+      "lastAccessed": 1780048956114,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\StatCard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780048984036,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\PriorityBadge.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780048986842,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\TaskCard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049005348,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\Heatmap.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049014980,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\KanbanBoard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049027941,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\Dashboard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049063810,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\Tasks.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049081332,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\TaskForm.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049118327,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\TaskDetail.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049134850,
+      "type": "file"
+    },
+    {
+      "path": "src\\pages\\Projects.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049154376,
+      "type": "file"
+    },
+    {
+      "path": "src\\components\\InstallPrompt.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780049163514,
+      "type": "file"
+    },
+    {
+      "path": "src\\types\\index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048572638,
+      "type": "file"
+    },
+    {
+      "path": "src\\main.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780048573267,
+      "type": "file"
+    },
+    {
+      "path": "src\\App.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780048573690,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048574138,
+      "type": "file"
+    },
+    {
+      "path": "src\\db\\database.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048574709,
+      "type": "file"
+    },
+    {
+      "path": "src\\utils\\date.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048574988,
+      "type": "file"
+    },
+    {
+      "path": "src\\hooks\\useNotification.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048575282,
+      "type": "file"
+    },
+    {
+      "path": "src\\store\\taskStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048584310,
+      "type": "file"
+    },
+    {
+      "path": "src\\store\\projectStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780048584963,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780048621500,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1780048622084,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.app.json",
+      "accessCount": 1,
+      "lastAccessed": 1780048622945,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

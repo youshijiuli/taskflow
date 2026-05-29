@@ -13,8 +13,7 @@ export default function InstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // show after a short delay
-      setTimeout(() => setVisible(true), 2000);
+      setTimeout(() => setVisible(true), 3000);
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -30,31 +29,22 @@ export default function InstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-30 max-w-[448px] mx-auto animate-bounce-in">
-      <div className="bg-gray-900 text-white rounded-2xl p-4 shadow-2xl">
+    <div className="fixed bottom-28 left-4 right-4 z-30 max-w-[448px] mx-auto slide-up">
+      <div className="bg-gray-900 text-white rounded-3xl p-4 shadow-2xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center flex-shrink-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 3v12M8 11l4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
             </svg>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">安装 TaskFlow</p>
-            <p className="text-xs text-gray-400 mt-0.5">添加到桌面，像原生 App 一样使用</p>
+            <p className="text-sm font-bold">安装到桌面</p>
+            <p className="text-xs text-gray-400 mt-0.5">像原生应用一样使用</p>
           </div>
-          <button
-            onClick={handleInstall}
-            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-sm font-semibold active:scale-95 transition-all"
-          >
-            安装
-          </button>
-          <button
-            onClick={() => setVisible(false)}
-            className="text-gray-500 hover:text-gray-300 p-1"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+          <button onClick={handleInstall}
+            className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl text-sm font-bold card-press">安装</button>
+          <button onClick={() => setVisible(false)} className="text-gray-500 p-1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
       </div>

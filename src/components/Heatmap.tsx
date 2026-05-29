@@ -9,10 +9,10 @@ function getDateStr(daysAgo: number): string {
 
 function colorFor(count: number): string {
   if (count === 0) return 'bg-gray-100';
-  if (count === 1) return 'bg-emerald-200';
+  if (count === 1) return 'bg-emerald-300';
   if (count <= 3) return 'bg-emerald-400';
   if (count <= 6) return 'bg-emerald-500';
-  return 'bg-emerald-700';
+  return 'bg-emerald-600';
 }
 
 export default function Heatmap({ tasks }: { tasks: Task[] }) {
@@ -43,19 +43,6 @@ export default function Heatmap({ tasks }: { tasks: Task[] }) {
     return result.slice(-17);
   }, [dayCounts]);
 
-  const months = useMemo(() => {
-    const labels: { label: string; weekIdx: number }[] = [];
-    weeks.forEach((week, i) => {
-      const d = week.find((dd) => dd.dayOfWeek === 1) || week[0];
-      const m = new Date(d.date).getMonth();
-      const prev = labels.length > 0 ? new Date(weeks[i - 1]?.[0]?.date).getMonth() : -1;
-      if (i === 0 || m !== prev) {
-        labels.push({ label: `${new Date(d.date).getMonth() + 1}月`, weekIdx: i });
-      }
-    });
-    return labels;
-  }, [weeks]);
-
   return (
     <div className="overflow-x-auto -mx-1">
       <div className="flex gap-[3px] min-w-fit">
@@ -63,11 +50,11 @@ export default function Heatmap({ tasks }: { tasks: Task[] }) {
           <div key={wi} className="flex flex-col gap-[3px]">
             {Array.from({ length: 7 }).map((_, di) => {
               const day = week.find((d) => d.dayOfWeek === di);
-              if (!day) return <div key={di} className="w-[11px] h-[11px]" />;
+              if (!day) return <div key={di} className="w-[12px] h-[12px]" />;
               return (
                 <div
                   key={day.date}
-                  className={`w-[11px] h-[11px] rounded-[2px] ${colorFor(day.count)} heatmap-cell`}
+                  className={`w-[12px] h-[12px] rounded-[3px] ${colorFor(day.count)} heatmap-cell`}
                   title={`${day.date}: ${day.count} 个任务`}
                 />
               );
@@ -75,21 +62,14 @@ export default function Heatmap({ tasks }: { tasks: Task[] }) {
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between mt-2.5">
-        <div className="flex gap-4 text-[10px] text-gray-300 font-medium">
-          {months.map((m, i) => (
-            <span key={i} style={{ marginLeft: i === 0 ? m.weekIdx * 14 : (m.weekIdx - months[i-1].weekIdx - 1) * 14 }}>{m.label}</span>
-          ))}
-        </div>
-        <div className="flex items-center gap-1 text-[10px] text-gray-300">
-          <span>少</span>
-          <div className="w-[10px] h-[10px] rounded-[2px] bg-gray-100" />
-          <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-200" />
-          <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-400" />
-          <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-500" />
-          <div className="w-[10px] h-[10px] rounded-[2px] bg-emerald-700" />
-          <span>多</span>
-        </div>
+      <div className="flex items-center justify-end gap-1 mt-2.5 text-[10px] text-gray-300 font-medium">
+        <span>少</span>
+        <div className="w-2.5 h-2.5 rounded-[3px] bg-gray-100" />
+        <div className="w-2.5 h-2.5 rounded-[3px] bg-emerald-300" />
+        <div className="w-2.5 h-2.5 rounded-[3px] bg-emerald-400" />
+        <div className="w-2.5 h-2.5 rounded-[3px] bg-emerald-500" />
+        <div className="w-2.5 h-2.5 rounded-[3px] bg-emerald-600" />
+        <span>多</span>
       </div>
     </div>
   );
