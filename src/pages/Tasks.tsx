@@ -4,10 +4,19 @@ import { useTaskStore } from '../store/taskStore';
 import { useProjectStore } from '../store/projectStore';
 import TaskCard from '../components/TaskCard';
 import KanbanBoard from '../components/KanbanBoard';
+import CalendarView from '../components/CalendarView';
+import EisenhowerMatrix from '../components/EisenhowerMatrix';
 import type { TaskStatus } from '../types';
 
-type ViewMode = 'list' | 'kanban';
+type ViewMode = 'list' | 'kanban' | 'calendar' | 'eisenhower';
 const statusLabels: Record<TaskStatus, string> = { todo: '待办', in_progress: '进行中', done: '已完成' };
+
+const VIEW_OPTIONS: { mode: ViewMode; label: string }[] = [
+  { mode: 'list', label: '列表' },
+  { mode: 'kanban', label: '看板' },
+  { mode: 'calendar', label: '日历' },
+  { mode: 'eisenhower', label: '四象限' },
+];
 
 export default function Tasks() {
   const navigate = useNavigate();
@@ -34,19 +43,15 @@ export default function Tasks() {
     <div className="px-4 py-4 space-y-4">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <div className="flex bg-gray-100/80 rounded-2xl p-0.5">
-          <button onClick={() => setViewMode('list')}
-            className={`px-5 py-2 text-[13px] font-bold rounded-[14px] transition-all duration-200 ${
-              viewMode === 'list' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400'
-            }`}>
-            列表
-          </button>
-          <button onClick={() => setViewMode('kanban')}
-            className={`px-5 py-2 text-[13px] font-bold rounded-[14px] transition-all duration-200 ${
-              viewMode === 'kanban' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400'
-            }`}>
-            看板
-          </button>
+        <div className="flex bg-gray-100/80 rounded-2xl p-0.5 overflow-x-auto">
+          {VIEW_OPTIONS.map(({ mode, label }) => (
+            <button key={mode} onClick={() => setViewMode(mode)}
+              className={`px-3 py-2 text-[12px] font-bold rounded-[14px] transition-all duration-200 whitespace-nowrap ${
+                viewMode === mode ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400'
+              }`}>
+              {label}
+            </button>
+          ))}
         </div>
         <button
           onClick={() => navigate('/task/new')}
@@ -107,8 +112,12 @@ export default function Tasks() {
             );
           })}
         </div>
-      ) : (
+      ) : viewMode === 'kanban' ? (
         <KanbanBoard tasks={filtered} />
+      ) : viewMode === 'calendar' ? (
+        <CalendarView tasks={filtered} />
+      ) : (
+        <EisenhowerMatrix tasks={filtered} />
       )}
     </div>
   );
