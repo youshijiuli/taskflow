@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  base: '/taskflow/',
+  base: process.env.BASE_URL || '/taskflow/',
   server: {
     allowedHosts: ['.loca.lt'],
   },

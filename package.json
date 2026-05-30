@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:desktop": "vite --open /desktop.html",
     "build": "tsc -b && vite build",
-    "build:exe": "tsc -b && vite build && electron-builder --win portable",
+    "build:desktop": "set BASE_URL=./ && tsc -b && vite build && electron-builder --win portable",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:dev": "vite"
