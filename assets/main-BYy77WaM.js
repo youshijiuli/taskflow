@@ -1,1 +1,0 @@
-import{i as e,s as t,t as n}from"./jsx-runtime-j9UEQzby.js";import{n as r,r as i,t as a}from"./App-BiYxfah6.js";var o=t(e(),1),s=t(i(),1),c=n();(0,s.createRoot)(document.getElementById(`root`)).render((0,c.jsx)(o.StrictMode,{children:(0,c.jsx)(r,{children:(0,c.jsx)(a,{})})}));
