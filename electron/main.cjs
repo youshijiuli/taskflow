@@ -1,67 +1,60 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const http = require('http');
+const fs = require('fs');
 
 let mainWindow = null;
-let tray = null;
+let server = null;
+
+const PORT = 18920;
+
+function startServer() {
+  const distPath = path.join(__dirname, '../dist');
+
+  server = http.createServer((req, res) => {
+    let filePath = path.join(distPath, req.url === '/' ? '/index.html' : req.url.split('?')[0]);
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(distPath, 'index.html');
+    }
+    const ext = path.extname(filePath);
+    const mimeTypes = {
+      '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+      '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json',
+      '.webmanifest': 'application/json', '.ico': 'image/x-icon',
+    };
+    const mime = mimeTypes[ext] || 'application/octet-stream';
+    res.writeHead(200, {
+      'Content-Type': mime,
+      'Access-Control-Allow-Origin': '*',
+    });
+    fs.createReadStream(filePath).pipe(res);
+  });
+
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log('TaskFlow server running on http://127.0.0.1:' + PORT);
+    createWindow();
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 480,
     height: 900,
-    minWidth: 960,
-    minHeight: 640,
     title: 'TaskFlow',
-    backgroundColor: '#0e0e16',
-    show: false,
+    backgroundColor: '#f8f9fb',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  // Load the built app
-  if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/desktop.html'));
-  }
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
-
-  mainWindow.on('close', (event) => {
-    if (tray) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
-  });
+  mainWindow.loadURL('http://127.0.0.1:' + PORT);
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function createTray() {
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
-  tray.setToolTip('TaskFlow');
-
-  const contextMenu = Menu.buildFromTemplate([
-    { label: '显示 TaskFlow', click: () => mainWindow.show() },
-    { type: 'separator' },
-    { label: '退出', click: () => { tray = null; app.quit(); } },
-  ]);
-  tray.setContextMenu(contextMenu);
-  tray.on('double-click', () => mainWindow.show());
-}
-
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-});
+app.whenReady().then(startServer);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (mainWindow) mainWindow.show();
+  if (server) server.close();
+  app.quit();
 });
