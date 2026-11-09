@@ -16,3 +16,374 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+
+
+# -*- coding: utf-8 -*-
+"""时间线视图：横向甘特图（Notion 风格）
+左侧任务树（父任务可展开子条），右侧日期轴横条：
+  创建日 → 截止日(未完成) / 完成日(已完成)
+颜色语义与日历一致: 蓝=进行中, 红=逾期未完成, 绿=已完成
+"""
+from datetime import date, timedelta
+
+from PySide6.QtCore import QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QVBoxLayout, QWidget)
+
+import database as db
+import styles as st
+
+LEFT_W = 230          # 左侧任务名列宽
+DAY_W = 26            # 每天像素宽
+ROW_H = 34
+HEAD_H = 46
+MAX_DAYS = 180
+
+
+def rgba(hex_color, alpha):
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+def task_color(task):
+    """颜色语义: 绿=已完成, 红=逾期未完成, 蓝=进行中"""
+    if task["completed"]:
+        return st.SUCCESS
+    end = task.get("end")
+    if end:
+        try:
+            if date.fromisoformat(end) < date.today():
+                return st.DANGER
+        except ValueError:
+            pass
+    return st.PRIMARY
+
+
+class GanttCanvas(QWidget):
+    """甘特图画布：完整绘制任务树 + 日期轴"""
+    task_activated = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.rows = []            # [{task, depth, has_children, expanded}]
+        self.day_start = None     # 轴起始日期
+        self.n_days = 0
+        self.collapsed = set()    # 折叠的父任务 id
+        self.setMouseTracking(True)
+        self.setToolTipDuration(-1)
+
+    # ---------- 数据 ----------
+    def set_data(self, parents, collapsed, search=""):
+        self.collapsed = collapsed
+        self.rows = []
+        for p in parents:
+            has_children = p["sub_count"] > 0
+            self.rows.append({"task": p, "depth": 0,
+                              "has_children": has_children,
+                              "expanded": p["id"] not in collapsed})
+            if has_children and p["id"] not in collapsed:
+                for c in p["children"]:
+                    self.rows.append({"task": c, "depth": 1,
+                                      "has_children": False, "expanded": False})
+        # 日期轴范围
+        dates = []
+        today = date.today()
+        dates.append(today)
+        for r in self.rows:
+            t = r["task"]
+            for key in ("start", "end"):
+                v = t.get(key)
+                if v:
+                    try:
+                        dates.append(date.fromisoformat(v))
+                    except ValueError:
+                        pass
+        # 日期轴范围: 从结束端截断, 保证"今天"始终可见
+        latest = max(dates)
+        earliest = min(dates)
+        start_limit = latest - timedelta(days=MAX_DAYS - 3)
+        self.day_start = max(earliest, start_limit) - timedelta(days=2)
+        n = (latest - self.day_start).days + 3
+        self.n_days = min(max(n, 14), MAX_DAYS)
+        self.setFixedSize(LEFT_W + self.n_days * DAY_W,
+                          HEAD_H + max(len(self.rows), 6) * ROW_H + 8)
+        self.update()
+
+    # ---------- 坐标 ----------
+    def _day_x(self, d):
+        return LEFT_W + (d - self.day_start).days * DAY_W
+
+    def _date_at(self, x):
+        return self.day_start + timedelta(days=int((x - LEFT_W) // DAY_W))
+
+    def _row_at(self, y):
+        idx = (y - HEAD_H) // ROW_H
+        if 0 <= idx < len(self.rows):
+            return self.rows[idx]
+        return None
+
+    # ---------- 绘制 ----------
+    def paintEvent(self, e):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        today = date.today()
+        w, h = self.width(), self.height()
+
+        # 背景
+        p.fillRect(self.rect(), QColor(st.BG))
+        # 左侧任务列背景
+        p.fillRect(QRectF(0, 0, LEFT_W, h), QColor(st.CARD))
+        p.setPen(QPen(QColor(st.BORDER), 1))
+        p.drawLine(LEFT_W, 0, LEFT_W, h)
+
+        # 表头
+        p.fillRect(QRectF(0, 0, w, HEAD_H), QColor(st.CARD))
+        p.drawLine(0, HEAD_H, w, HEAD_H)
+        font_day = QFont("Microsoft YaHei UI", 7)
+        font_mon = QFont("Microsoft YaHei UI", 8, QFont.Bold)
+        for i in range(self.n_days):
+            d = self.day_start + timedelta(days=i)
+            x = LEFT_W + i * DAY_W
+            # 周末浅色
+            if d.weekday() >= 5:
+                p.fillRect(QRectF(x, HEAD_H, DAY_W, h - HEAD_H), QColor("#EDF1F8"))
+            # 今日列
+            if d == today:
+                p.fillRect(QRectF(x, 0, DAY_W, h), QColor(46, 124, 246, 28))
+            # 月份分隔
+            if d.day == 1 or i == 0:
+                p.setPen(QPen(QColor(st.BORDER), 1))
+                p.drawLine(x, 0, x, h)
+                p.setPen(QColor(st.TEXT))
+                p.setFont(font_mon)
+                label = f"{d.year}/{d.month}" if d.day == 1 or i == 0 else ""
+                if d.day == 1:
+                    p.drawText(QRectF(x + 2, 6, DAY_W * 2, 16), Qt.AlignLeft, f"{d.year}年{d.month}月")
+            # 日期数字
+            p.setPen(QColor(st.TEXT_SUB if d != today else st.PRIMARY))
+            p.setFont(font_day)
+            if d != today:
+                p.drawText(QRectF(x, 24, DAY_W, 16), Qt.AlignCenter, str(d.day))
+            else:
+                p.setPen(QColor("#FFFFFF"))
+                p.setBrush(QColor(st.PRIMARY))
+                p.drawEllipse(QRectF(x + DAY_W / 2 - 8, 24, 16, 16))
+                p.drawText(QRectF(x + DAY_W / 2 - 8, 24, 16, 16), Qt.AlignCenter, str(d.day))
+        p.setPen(QPen(QColor(st.BORDER), 1))
+        p.drawLine(0, 26, w, 26)
+        # 今日竖线
+        tx = self._day_x(today)
+        if LEFT_W <= tx <= w:
+            p.setPen(QPen(QColor(46, 124, 246, 180), 2, Qt.DashLine))
+            p.drawLine(tx, HEAD_H, tx, h)
+
+        # 行
+        font_row = QFont("Microsoft YaHei UI", 9)
+        for ri, r in enumerate(self.rows):
+            t = r["task"]
+            y = HEAD_H + ri * ROW_H
+            # 斑马纹
+            if ri % 2 == 1:
+                p.fillRect(QRectF(0, y, w, ROW_H), QColor(255, 255, 255, 110))
+            p.setPen(QPen(QColor(st.BORDER), 1))
+            p.drawLine(0, y + ROW_H, w, y + ROW_H)
+
+            # 左侧名称
+            indent = 10 + r["depth"] * 18
+            p.setFont(font_row)
+            if r["has_children"]:
+                # 展开箭头
+                ax, ay = indent, y + ROW_H / 2
+                p.setPen(QPen(QColor(st.TEXT_SUB), 1.6, Qt.SolidLine, Qt.RoundCap))
+                if r["expanded"]:
+                    p.drawLine(ax - 3, ay - 2, ax, ay + 2)
+                    p.drawLine(ax, ay + 2, ax + 3, ay - 2)
+                else:
+                    p.drawLine(ax - 2, ay - 3, ax + 2, ay)
+                    p.drawLine(ax + 2, ay, ax - 2, ay + 3)
+                indent += 14
+            done = t["completed"]
+            p.setPen(QColor(st.TEXT_FAINT if done else st.TEXT))
+            name = t["title"]
+            max_ch = (LEFT_W - indent - 8) // 13
+            if len(name) > max_ch and max_ch > 1:
+                name = name[:max_ch - 1] + "…"
+            p.drawText(QRectF(indent, y, LEFT_W - indent - 6, ROW_H),
+                       Qt.AlignVCenter | Qt.AlignLeft, name)
+
+            # 横条
+            try:
+                sd = date.fromisoformat(t["start"]) if t["start"] else today
+            except ValueError:
+                sd = today
+            ed = None
+            if t["end"]:
+                try:
+                    ed = date.fromisoformat(t["end"])
+                except ValueError:
+                    ed = None
+            if not ed:
+                ed = today
+            if sd > ed:
+                sd, ed = ed, sd
+            x1 = self._day_x(sd) + 3
+            x2 = min(self._day_x(ed) + DAY_W - 3, w - 4)
+            if x2 < LEFT_W:
+                continue
+            x1 = max(x1, LEFT_W + 2)
+            bar_h = 12 if r["depth"] else 15
+            by = y + (ROW_H - bar_h) / 2
+            color = task_color(t)
+            bar_rect = QRectF(x1, by, max(x2 - x1, 8), bar_h)
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor(color) if not done else QColor(34, 197, 94, 220))
+            p.drawRoundedRect(bar_rect, bar_h / 2, bar_h / 2)
+            # 父任务进度: 条内子任务完成度
+            if r["depth"] == 0 and t["sub_count"]:
+                frac = t["sub_done"] / t["sub_count"]
+                if frac > 0 and not done:
+                    p.setBrush(QColor(255, 255, 255, 160))
+                    p.setPen(Qt.NoPen)
+                    p.drawRoundedRect(QRectF(x1, by, (x2 - x1) * frac, bar_h),
+                                      bar_h / 2, bar_h / 2)
+        p.end()
+
+    # ---------- 交互 ----------
+    def mousePressEvent(self, e):
+        pos = e.position()
+        r = self._row_at(pos.y())
+        if r and r["has_children"] and pos.x() < LEFT_W:
+            indent = 10 + r["depth"] * 18
+            if pos.x() <= indent + 8:
+                tid = r["task"]["id"]
+                if r["task"]["id"] in self.collapsed:
+                    self.collapsed.discard(tid)
+                else:
+                    self.collapsed.add(tid)
+                self.set_data(self._parents_snapshot(), self.collapsed)
+                return
+        r = self._row_at(pos.y())
+        if r and pos.x() >= LEFT_W:
+            self.task_activated.emit(r["task"]["id"])
+        super().mousePressEvent(e)
+
+    def _parents_snapshot(self):
+        return self._last_parents
+
+    def snapshot_parents(self, parents):
+        self._last_parents = parents
+
+    def mouseMoveEvent(self, e):
+        pos = e.position()
+        r = self._row_at(pos.y())
+        if r:
+            t = r["task"]
+            lines = [t["title"],
+                     f"清单: {t.get('list_name', '')}    优先级: {db.PRIORITY_NAMES.get(t['priority'], '')}",
+                     f"创建: {t.get('created_at') or '—'}"]
+            if t.get("due_date"):
+                lines.append(f"截止: {t['due_date']}")
+            if t.get("completed_at"):
+                lines.append(f"完成: {t['completed_at']}")
+            if not t.get("notes"):
+                pass
+            else:
+                lines.append(f"描述: {t['notes']}")
+            if r["depth"] == 0 and t["sub_count"]:
+                lines.append(f"子任务: {t['sub_done']}/{t['sub_count']} 完成")
+            self.setToolTip("\n".join(lines))
+        else:
+            self.setToolTip("")
+        super().mouseMoveEvent(e)
+
+
+class TimelineView(QWidget):
+    task_activated = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.collapsed = set()
+        self.search_text = ""
+        self._build()
+
+    def _build(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(8)
+
+        nav = QFrame()
+        nav.setStyleSheet(f"QFrame {{ background: {st.CARD}; border: 1px solid {st.BORDER};"
+                          "border-radius: 10px; }}")
+        n = QHBoxLayout(nav)
+        n.setContentsMargins(14, 10, 14, 10)
+        n.setSpacing(8)
+        title = QLabel("时间线")
+        title.setStyleSheet(f"color: {st.TEXT}; font-size: 15px; font-weight: 700;"
+                            "background: transparent; border: none;")
+        n.addWidget(title)
+
+        def chip_btn(text, tip, cb):
+            b = QPushButton(text)
+            b.setObjectName("chipBtn")
+            b.setCursor(Qt.PointingHandCursor)
+            b.setToolTip(tip)
+            b.clicked.connect(cb)
+            return b
+
+        n.addWidget(chip_btn("全部展开", "展开全部父任务", lambda: self._toggle_all(True)))
+        n.addWidget(chip_btn("全部折叠", "折叠全部父任务", lambda: self._toggle_all(False)))
+        n.addStretch()
+        legend = [(st.PRIMARY, "进行中"), (st.DANGER, "已逾期"), (st.SUCCESS, "已完成")]
+        for color, name in legend:
+            dot = QLabel()
+            dot.setFixedSize(9, 9)
+            dot.setStyleSheet(f"background: {color}; border-radius: 2px; border: none;")
+            lab = QLabel(name)
+            lab.setStyleSheet(f"color: {st.TEXT_SUB}; font-size: 11px; background: transparent; border: none;")
+            n.addWidget(dot)
+            n.addWidget(lab)
+            n.addSpacing(4)
+        root.addWidget(nav)
+
+        self.canvas = GanttCanvas()
+        self.canvas.task_activated.connect(self.task_activated.emit)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(False)
+        self.scroll.setWidget(self.canvas)
+        self.scroll.setStyleSheet(f"""
+            QScrollArea {{ background: {st.BG}; border: none; }}
+            QScrollBar:horizontal {{ background: transparent; height: 8px; }}
+            QScrollBar::handle:horizontal {{ background: #D4DBE7; border-radius: 4px; min-width: 32px; }}
+            QScrollBar::handle:horizontal:hover {{ background: {st.PRIMARY}; }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
+            QScrollBar:vertical {{ background: transparent; width: 8px; }}
+            QScrollBar::handle:vertical {{ background: #D4DBE7; border-radius: 4px; min-height: 32px; }}
+        """)
+        root.addWidget(self.scroll, 1)
+
+    def set_search(self, text):
+        self.search_text = text
+        self.refresh()
+
+    def _toggle_all(self, expand):
+        parents = db.DB.get_timeline_tasks(search=self.search_text)
+        if expand:
+            self.collapsed.clear()
+        else:
+            for p in parents:
+                if p["sub_count"]:
+                    self.collapsed.add(p["id"])
+        self.refresh()
+
+    def refresh(self, show_completed=None):
+        if show_completed is not None:
+            self._show_completed = show_completed
+        parents = db.DB.get_timeline_tasks(search=self.search_text,
+                                           show_completed=getattr(self, "_show_completed", True))
+        self.canvas.snapshot_parents(parents)
+        self.canvas.set_data(parents, self.collapsed)
+        # 滚动到今天
+        self.scroll.horizontalScrollBar().setValue(
+            max(0, (date.today() - self.canvas.day_start).days * DAY_W - 200))
