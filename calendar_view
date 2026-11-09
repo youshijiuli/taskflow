@@ -1,0 +1,268 @@
+# -*- coding: utf-8 -*-
+"""日历视图：月历网格，按截止日期展示任务"""
+import calendar as cal_mod
+from datetime import date, timedelta
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
+                               QPushButton, QScrollArea, QSizePolicy,
+                               QVBoxLayout, QWidget)
+
+import database as db
+import styles as st
+
+WEEK_FULL = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+
+
+def rgba(hex_color, alpha):
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+class CalChip(QLabel):
+    """日历单元格里的任务条
+    颜色语义: 蓝色=进行中(未到截止时间), 红色=已逾期未完成, 绿色=已完成"""
+    clicked = Signal(int)
+
+    def __init__(self, task, parent=None):
+        super().__init__(parent)
+        self.task = task
+        done = bool(task["completed"])
+        d, t = db.parse_due(task["due_date"])
+        overdue = (not done) and d < date.today()
+        if done:
+            color = st.SUCCESS      # 到截止时间且完成 -> 绿色
+        elif overdue:
+            color = st.DANGER       # 逾期未完成 -> 红色
+        else:
+            color = st.PRIMARY      # 未到截止时间 -> 统一蓝色
+        prefix = "" if not task["parent_id"] else "└ "
+        time_prefix = f"{t[0]:02d}:{t[1]:02d} " if t else ""
+        self.setText(f"{prefix}{time_prefix}{task['title']}")
+        self.setObjectName("calChip")
+        self.setStyleSheet(f"""
+            QLabel#calChip {{
+                color: {st.TEXT_FAINT if done else st.TEXT};
+                background: {rgba(color, 0.14)};
+                border-left: 3px solid {color};
+                border-radius: 4px; padding: 2px 6px; font-size: 11px;
+            }}
+        """)
+        f = self.font()
+        f.setStrikeOut(done)
+        f.setPointSizeF(8.5)
+        self.setFont(f)
+        self.setCursor(Qt.PointingHandCursor)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.clicked.emit(self.task["id"])
+        e.accept()
+
+
+class DayCell(QFrame):
+    add_requested = Signal(object)  # date
+    chip_clicked = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.day = None
+        self.setObjectName("calCell")
+        v = QVBoxLayout(self)
+        v.setContentsMargins(5, 4, 5, 4)
+        v.setSpacing(2)
+        self.day_label = QLabel()
+        self.day_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.day_label.setFixedSize(22, 22)
+        self.day_label.setAlignment(Qt.AlignCenter)
+        head = QHBoxLayout()
+        head.setContentsMargins(0, 0, 0, 0)
+        head.addWidget(self.day_label)
+        head.addStretch()
+        v.addLayout(head)
+        self.chips_lay = QVBoxLayout()
+        self.chips_lay.setContentsMargins(0, 0, 0, 0)
+        self.chips_lay.setSpacing(2)
+        v.addLayout(self.chips_lay)
+        v.addStretch(1)
+
+    def set_day(self, d, in_month, is_today):
+        self.day = d
+        self.day_label.setText(str(d.day))
+        if is_today:
+            self.day_label.setStyleSheet(
+                f"color: #FFFFFF; background: {st.PRIMARY}; border-radius: 11px;"
+                "font-size: 11px; font-weight: 700;")
+        else:
+            color = st.TEXT if in_month else st.TEXT_FAINT
+            self.day_label.setStyleSheet(f"color: {color}; font-size: 11px; background: transparent;")
+        self.setProperty("in_month", "true" if in_month else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+    def set_tasks(self, tasks):
+        while self.chips_lay.count():
+            item = self.chips_lay.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+        show = tasks[:4]
+        for t in show:
+            chip = CalChip(t)
+            chip.clicked.connect(self.chip_clicked)
+            self.chips_lay.addWidget(chip)
+        if len(tasks) > 4:
+            more = QLabel(f"还有 {len(tasks) - 4} 项…")
+            more.setStyleSheet(
+                f"color: {st.TEXT_FAINT}; font-size: 10px; background: transparent;"
+                "padding: 0 4px;")
+            self.chips_lay.addWidget(more)
+
+    def mouseDoubleClickEvent(self, e):
+        if self.day:
+            self.add_requested.emit(self.day)
+        e.accept()
+
+
+class CalendarView(QWidget):
+    task_activated = Signal(int)   # 点击任务条
+    task_add_requested = Signal(object)  # 双击某天 -> date
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.view_date = date.today()
+        self.search_text = ""
+        self._build()
+        self.refresh()
+
+    def _build(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(8)
+
+        # 月份导航
+        nav = QFrame()
+        nav.setObjectName("calNav")
+        nav.setStyleSheet(f"""
+            QFrame#calNav {{ background: {st.CARD}; border: 1px solid {st.BORDER};
+                border-radius: 10px; }}
+        """)
+        n = QHBoxLayout(nav)
+        n.setContentsMargins(14, 10, 14, 10)
+        n.setSpacing(8)
+        self.month_label = QLabel()
+        self.month_label.setStyleSheet(
+            f"color: {st.TEXT}; font-size: 17px; font-weight: 700; background: transparent;")
+
+        def nav_btn(text, tip):
+            b = QPushButton(text)
+            b.setObjectName("calNavBtn")
+            b.setFixedSize(30, 30)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setToolTip(tip)
+            b.setStyleSheet(f"""
+                QPushButton {{ color: {st.TEXT_SUB}; background: transparent;
+                    border: 1px solid {st.BORDER}; border-radius: 8px; font-size: 12px; }}
+                QPushButton:hover {{ color: {st.PRIMARY}; border-color: {st.PRIMARY}; }}
+            """)
+            return b
+
+        prev = nav_btn("◀", "上个月")
+        prev.clicked.connect(lambda: self._shift_month(-1))
+        next = nav_btn("▶", "下个月")
+        next.clicked.connect(lambda: self._shift_month(1))
+        today_btn = QPushButton("回到今天")
+        today_btn.setObjectName("chipBtn")
+        today_btn.setCursor(Qt.PointingHandCursor)
+        today_btn.clicked.connect(self._go_today)
+        n.addWidget(prev)
+        n.addWidget(self.month_label)
+        n.addWidget(next)
+        n.addStretch()
+        legend_items = [
+            (st.PRIMARY, "进行中"), (st.DANGER, "已逾期"), (st.SUCCESS, "已完成"),
+        ]
+        for color, name in legend_items:
+            dot = QLabel()
+            dot.setFixedSize(9, 9)
+            dot.setStyleSheet(f"background: {color}; border-radius: 2px;")
+            lab = QLabel(name)
+            lab.setStyleSheet(f"color: {st.TEXT_SUB}; font-size: 11px; background: transparent;")
+            n.addWidget(dot)
+            n.addWidget(lab)
+            n.addSpacing(4)
+        n.addSpacing(6)
+        hint = QLabel("双击日期新建任务 · 点击任务条编辑")
+        hint.setStyleSheet(f"color: {st.TEXT_FAINT}; font-size: 11px; background: transparent;")
+        n.addWidget(hint)
+        n.addWidget(today_btn)
+        root.addWidget(nav)
+
+        # 星期表头
+        week = QGridLayout()
+        week.setSpacing(6)
+        for i, name in enumerate(WEEK_FULL):
+            lab = QLabel(name)
+            lab.setAlignment(Qt.AlignCenter)
+            lab.setStyleSheet(
+                f"color: {st.TEXT_FAINT}; font-size: 12px; font-weight: 600;"
+                "background: transparent;")
+            week.addWidget(lab, 0, i)
+        root.addLayout(week)
+
+        # 6x7 网格
+        self.grid_lay = QGridLayout()
+        self.grid_lay.setSpacing(6)
+        self.cells = []
+        for r in range(6):
+            for c in range(7):
+                cell = DayCell()
+                cell.chip_clicked.connect(self.task_activated.emit)
+                cell.add_requested.connect(self.task_add_requested.emit)
+                self.grid_lay.addWidget(cell, r, c)
+                self.cells.append(cell)
+        root.addLayout(self.grid_lay, 1)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def set_search(self, text):
+        self.search_text = text
+        self.refresh()
+
+    def _shift_month(self, delta):
+        m = self.view_date.month + delta
+        y = self.view_date.year
+        if m < 1:
+            y, m = y - 1, 12
+        elif m > 12:
+            y, m = y + 1, 1
+        self.view_date = date(y, m, 1)
+        self.refresh()
+
+    def _go_today(self):
+        self.view_date = date.today()
+        self.refresh()
+
+    def refresh(self, show_completed=None):
+        if show_completed is not None:
+            self._show_completed = show_completed
+        show_completed = getattr(self, "_show_completed", True)
+        year, month = self.view_date.year, self.view_date.month
+        self.month_label.setText(f"{year} 年 {month} 月")
+        first = date(year, month, 1)
+        lead = first.weekday()
+        grid_start = first - timedelta(days=lead)
+        # 查询范围覆盖完整 42 格(含下月尾部), 否则第 6 行格子不显示任务
+        grid_end = grid_start + timedelta(days=41)
+        tasks = db.DB.get_due_tasks_between(grid_start.isoformat(), grid_end.isoformat(),
+                                            search=self.search_text,
+                                            show_completed=show_completed)
+        by_day = {}
+        for t in tasks:
+            d = t["due_date"].split(" ")[0]
+            by_day.setdefault(d, []).append(t)
+        today = date.today()
+        for i, cell in enumerate(self.cells):
+            d = grid_start + timedelta(days=i)
+            cell.set_day(d, d.month == month, d == today)
+            cell.set_tasks(by_day.get(d.isoformat(), []))
